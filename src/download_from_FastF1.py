@@ -9,20 +9,30 @@ import os
 #
 # # Enable the cache
 # fastf1.Cache.enable_cache(cache_dir)
+
 year = 2024
 gp = "Austria"
-# Now you can load sessions
+
+# Save the data from sesion to catalog
 session = fastf1.get_session(2024, 'Austria', 'R')
-output = Path("data")
+path = Path(__file__).resolve().parent.parent
+output = path/"data"/str(year)
 output.mkdir(parents=True, exist_ok=True)
 print("Wczytywanie danych")
 # # Load all session data (timing, telemetry, weather, etc.)
 session.load()
 laps = session.laps
-output_file = output/f"{year}/{gp}.csv"
+weather = session.weather_data
+output_file = output/f"{gp}.csv"
+weather_file = output/f"{gp}_weather.csv"
 laps.to_csv(output_file, index=False)
+weather.to_csv(weather_file, index=False)
 print("Output: ")
+print("Weather: ")
 print(output_file)
+print(weather_file)
+
+
 # # Get all laps for a specific driver
 # alonso_laps = session.laps.pick_drivers('ALO')
 #
