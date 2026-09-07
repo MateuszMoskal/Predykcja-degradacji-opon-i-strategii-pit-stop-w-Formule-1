@@ -1,98 +1,32 @@
 import pandas as pd
+from sklearn.preprocessing import OneHotEncoder
 from pathlib import Path
-
-# Pobieranie danych z wyścigów z konkretnych lat
-years = [2019,2020,2021,2022,2023,2024,2025]
-
-# Dane wybrane do procesu uczenia dotyczące okrążeń
-lap_columns = [
-    "Time",
-    "Driver",
-    "LapTime",
-    "LapNumber",
-    "Stint",
-    "Compound",
-    "TyreLife"
-]
-
-# Dane wybrane do procesu uczenia dotyczące pogody
-weather_columns = [
-    "Time",
-    "AirTemp",
-    "Humidity",
-    "Rainfall",
-    "TrackTemp"
-]
 
 path = Path(__file__).resolve().parent.parent
 
+categorical_columns = [
+    "Driver",
+    "Compound"
+]
 
-for year in years:
-    # Sciezki wejsciowe i wyjsciowe folderow
-    input_dir = path / "data" / "raw" / str(year)
-    output_dir = path / "data" / "proceed" / str(year)
+file = path / "data" / "final" / "2019" / "1_Australian Grand Prix.csv"
+df = pd.read_csv(file)
+df["Rainfall"] = df["Rainfall"].astype(int)
+df["LapTime"] = pd.to_timedelta(df["LapTime"]).dt.total_seconds()
 
-    output_dir.mkdir(parents=True, exist_ok=True)
+df = df.drop(columns="Time")
 
-    # Pobranie wszystkich pliki CSV z danego roku
-    for file in input_dir.glob("*.csv"):
-        if file.name.endswith("_weather.csv"):
-            continue
+encoder = OneHotEncoder(
+    sparse_output=False,
+    handle_unknown="ignore"
+)
 
-        try:
-            # Wczytanie danych dotyczacych okrazen
-            laps = pd.read_csv(file)
+compound_encoded = encoder.fit_transform(
+    df[categorical_columns]
+)
 
-            # Usuniecie okrazen wyjazdowych
-            laps = laps[laps["PitOutTime"].isna()]
+encoded_columns = encoder.get_feature_names_out(
+            categorical_columns
+        )
 
-            # Usuniecie okrazen zjazdowych
-            laps = laps[laps["PitInTime"].isna()]
-
-            # Usunięcie okrazen pod samochodem bezpieczenstwa lub czerwona flaga
-            laps = laps[
-                ~laps["TrackStatus"]
-                .astype(str)
-                .str.contains("4|5", na=False)
-            ]
-
-            laps = laps[lap_columns]
-
-            #Zapis do pliku (proceed/year)
-            output_file = output_dir / file.name
-
-            laps.to_csv(
-                output_file,
-                index=False
-            )
-
-            # Wczytanie danych pogodowych
-            weather_input_file = file.with_name(
-                file.stem + "_weather.csv"
-            )
-            if weather_input_file.exists():
-
-                weather = pd.read_csv(weather_input_file)
-                weather = weather[
-                    weather_columns
-                ].copy()
-                # Zapisanie danych pogodowych do pliku proceed/year
-                weather_output_file = (
-                    output_dir /
-                    weather_input_file.name
-                )
-
-                weather.to_csv(
-                    weather_output_file,
-                    index=False
-                )
-
-            else:
-                print(
-                    f"Nie znaleziono pliku pogodowego: "
-                    f"{weather_input_file.name}"
-                )
-
-        except Exception as e:
-
-            print(f"Błąd w pliku {file.name}: {e}")
+print(df)
