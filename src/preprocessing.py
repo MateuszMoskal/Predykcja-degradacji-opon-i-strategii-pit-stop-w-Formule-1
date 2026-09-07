@@ -1,32 +1,68 @@
 import pandas as pd
-from sklearn.preprocessing import OneHotEncoder
 from pathlib import Path
+
+# Pobieranie danych z wyścigów z konkretnych lat
+years = [2019,2020,2021,2022,2023,2024,2025]
 
 path = Path(__file__).resolve().parent.parent
 
-categorical_columns = [
-    "Driver",
-    "Compound"
-]
+for year in years:
+    # Sciezki wejsciowe i wyjsciowe folderow
+    input_dir = path / "data" / "proceed" / str(year)
+    output_dir = path / "data" / "final" / str(year)
 
-file = path / "data" / "final" / "2019" / "1_Australian Grand Prix.csv"
-df = pd.read_csv(file)
-df["Rainfall"] = df["Rainfall"].astype(int)
-df["LapTime"] = pd.to_timedelta(df["LapTime"]).dt.total_seconds()
+    output_dir.mkdir(parents=True, exist_ok=True)
 
-df = df.drop(columns="Time")
+    # Pobranie wszystkich pliki CSV z danego roku
+    for file in input_dir.glob("*.csv"):
+        if file.name.endswith("_weather.csv"):
+            continue
 
-encoder = OneHotEncoder(
-    sparse_output=False,
-    handle_unknown="ignore"
-)
+        try:
+            # Wczytanie danych dotyczacych okrazen
+            laps = pd.read_csv(file)
 
-compound_encoded = encoder.fit_transform(
-    df[categorical_columns]
-)
+            weather_file = file.with_name(
+                file.stem + "_weather.csv"
+            )
 
-encoded_columns = encoder.get_feature_names_out(
-            categorical_columns
-        )
+            if not weather_file.exists():
+                print(f"Brak danych pogodowych: {weather_file.name}")
+                continue
 
-print(df)
+            weather = pd.read_csv(weather_file)
+
+            # Zwraca roznice czasu
+            laps["Time"] = pd.to_timedelta(
+                laps["Time"]
+            )
+
+            weather["Time"] = pd.to_timedelta(
+                weather["Time"]
+            )
+
+            laps = laps.sort_values("Time")
+            weather = weather.sort_values("Time")
+
+            # Polaczenie dwoch plikow (okrazenia w czasie wyscigu i pogoda po czasie sesji)
+            merged = pd.merge_asof(
+                laps,
+                weather,
+                on="Time",
+                direction="backward"
+            )
+
+            merged["Rainfall"] = merged["Rainfall"].astype(int)
+            merged["LapTime"] = pd.to_timedelta(merged["LapTime"]).dt.total_seconds()
+            merged = merged.drop(columns="Time")
+
+            output_file = output_dir / file.name
+
+            merged.to_csv(
+                output_file,
+                index=False
+            )
+
+        except Exception as e:
+
+            print(f"Błąd w pliku {file.name}: {e}")
