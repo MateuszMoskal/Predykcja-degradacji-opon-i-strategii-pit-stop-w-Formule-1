@@ -1,8 +1,7 @@
 import pandas as pd
 import numpy as np
-import xgboost as xgb
 from xgboost import XGBRegressor
-from sklearn.metrics import mean_squared_error,mean_absolute_error, r2_score, accuracy_score
+from sklearn.metrics import mean_squared_error,mean_absolute_error, r2_score
 from sklearn.preprocessing import OneHotEncoder
 from pathlib import Path
 import matplotlib.pyplot as plt
