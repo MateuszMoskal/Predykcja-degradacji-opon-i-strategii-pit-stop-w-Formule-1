@@ -37,7 +37,6 @@ def load_data(years):
         file = path / "data" / "final" / str(year)
         for file in file.glob("*.csv"):
             df = pd.read_csv(file)
-            df["LapTime"] = pd.to_timedelta(df["LapTime"]).dt.total_seconds()
             df["Year"] = year
             df["Circuit"] = file.stem.split("_", 1)[1]
             data.append(df)
@@ -57,7 +56,6 @@ def create_sequences(df, history_size):
     grouped = df.groupby(group_columns)
 
     for _, group in grouped:
-        print("czy dziala")
         group = group.reset_index(drop=True)
         if len(group) <= history_size:
             continue
@@ -86,8 +84,8 @@ def create_sequences(df, history_size):
 X_train, y_train = create_sequences(train_data, history_size)
 X_test, y_test = create_sequences(test_data, history_size)
 
-X_train = X_train.shape[0]
-X_test = X_test.shape[0]
+X_train2 = X_train.shape[0]
+X_test2 = X_test.shape[0]
 
 n_features = len(numerical_columns + categorical_columns)
 
@@ -111,12 +109,12 @@ X_test_cat_encoded = encoder.transform(X_test_flat)
 
 
 encoded_features = X_train_cat_encoded.shape[1]
-X_train_encoded = X_train_cat_encoded.reshape(X_train, history_size, encoded_features)
-X_test_encoded = X_test_cat_encoded.reshape(X_test, history_size, encoded_features)
+X_train_encoded = X_train_cat_encoded.reshape(X_train2, history_size, encoded_features)
+X_test_encoded = X_test_cat_encoded.reshape(X_test2, history_size, encoded_features)
 
 
-X_train = np.concatenate([X_train_numerical, X_train_cat_encoded], axis=2)
-X_test = np.concatenate([X_test_numerical, X_test_cat_encoded], axis=2)
+X_train = np.concatenate([X_train_numerical, X_train_encoded], axis=2)
+X_test = np.concatenate([X_test_numerical, X_test_encoded], axis=2)
 
 
 samples, timesteps, features = X_train.shape
@@ -185,7 +183,7 @@ criterion = nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
 
-epochs = 10
+epochs = 15
 for epoch in range(epochs):
     model.train()
     total_loss = 0
