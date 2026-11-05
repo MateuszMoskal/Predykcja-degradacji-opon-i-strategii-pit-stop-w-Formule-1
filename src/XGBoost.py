@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import joblib
 from xgboost import XGBRegressor
 from sklearn.metrics import mean_squared_error,mean_absolute_error, r2_score
 from sklearn.preprocessing import OneHotEncoder
@@ -106,4 +107,8 @@ print("\nTEST")
 print(f"R²:  {r2_score(y_test,y_pred):.4f}")
 print(f"MAE: {mean_absolute_error(y_test, y_pred):.4f} s")
 print(f"MSE: {mean_squared_error(y_test, y_pred):.4f}")
+
+(path / "models").mkdir(exist_ok=True)
+joblib.dump(model, path / "models" / "xgboost_model.joblib")
+joblib.dump(encoder, path / "models" / "onehot_encoder.joblib")
 
